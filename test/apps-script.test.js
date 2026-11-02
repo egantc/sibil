@@ -1,0 +1,18 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';import {createHash,randomUUID} from 'node:crypto';
+test('Apps Script authentication and billing workflow with simulated Google services',()=>{
+ const rows=new Map(),cache=new Map(),props={SPREADSHEET_ID:'test',ADMIN_USERNAME:'admin',ADMIN_PASSWORD:'test-password-123'};let locked=false;
+ const sheet=name=>({getRange:(r,c,n,m)=>({setValues:values=>{const a=rows.get(name);values.forEach((v,i)=>{a[r-1+i]=v.map(String);});}}),setFrozenRows:()=>{},getDataRange:()=>({getValues:()=>rows.get(name)})});
+ const ss={getSheetByName:n=>rows.has(n)?sheet(n):null,insertSheet:n=>{rows.set(n,[]);return sheet(n);}};
+ const context={PropertiesService:{getScriptProperties:()=>({getProperties:()=>props,getProperty:k=>props[k]})},SpreadsheetApp:{openById:()=>ss,flush:()=>{}},LockService:{getScriptLock:()=>({waitLock:()=>{assert.equal(locked,false);locked=true;},releaseLock:()=>{locked=false;}})},CacheService:{getScriptCache:()=>({get:k=>cache.get(k),put:(k,v)=>cache.set(k,v),remove:k=>cache.delete(k)})},ContentService:{MimeType:{JSON:'json'},createTextOutput:s=>({setMimeType:()=>s})},Utilities:{getUuid:randomUUID,base64Encode:b=>Buffer.from(b).toString('base64'),computeDigest:(a,s)=>createHash('sha256').update(s).digest(),DigestAlgorithm:{SHA_256:'SHA256'},Charset:{UTF_8:'utf8'}}};
+ vm.createContext(context);vm.runInContext(readFileSync('apps-script/Code.gs','utf8'),context);context.setupSibil();assert.equal(rows.size,4);context.setupSibil();let token='';const call=(action,body={})=>JSON.parse(context.doPost({postData:{contents:JSON.stringify({action,body,token})}}));
+ assert.equal(call('data').status,401);assert.equal(call('login',{username:'admin',password:'wrong'}).status,401);
+ token=call('login',{username:'admin',password:props.ADMIN_PASSWORD}).data.token;
+ const c=call('customers',{name:'Alice',phone:'628123456789',plan:'20Mbps',rate:150000,active:true});assert.equal(c.ok,true);
+ const b={customerId:c.data.id,period:'2026-11',amount:150000,dueDate:'2026-11-10'};const i=call('invoices',b);assert.equal(i.ok,true);assert.equal(call('invoices',b).status,409);
+ const p={invoiceId:i.data.id,amount:50000,method:'CASH',paidAt:'2026-11-02'};assert.equal(call('payments',p).ok,true);assert.equal(call('payments',{...p,amount:100001}).status,400);assert.equal(call('payments',{...p,amount:100000}).ok,true);
+ const db=call('data').data;assert.equal(db.history.length,4);assert.equal(db.payments.length,2);assert.equal(call('logout').ok,true);assert.equal(call('data').status,401);assert.equal(locked,false);
+});
+test('Pages transport posts plain text with token in body and handles API errors',async()=>{
+ const src=readFileSync('public/app.js','utf8');const api=src.slice(src.indexOf('async function api('),src.indexOf('function showLogin'));
+ let captured;const ctx={apiBase:'https://script.google.com/macros/s/test/exec',onPages:true,sessionToken:'',AbortSignal,showLogin:()=>{},fetch:async(u,o)=>{captured={u,o};return{ok:true,json:async()=>({ok:true,data:{token:'test-session'}})};}};vm.createContext(ctx);vm.runInContext(api,ctx);await ctx.api('login',{username:'admin',password:'example'});assert.equal(captured.o.headers['Content-Type'],'text/plain;charset=utf-8');assert.equal(captured.o.method,'POST');assert.equal(ctx.sessionToken,'test-session');await ctx.api('data');assert.equal(JSON.parse(captured.o.body).token,'test-session');ctx.fetch=async()=>({ok:true,json:async()=>({ok:false,status:401,error:'Silakan login'})});await assert.rejects(ctx.api('data'),/Silakan login/);assert.equal(ctx.sessionToken,'');
+});

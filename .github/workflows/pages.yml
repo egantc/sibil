@@ -31,7 +31,7 @@ jobs:
           node --input-type=module <<'JS'
           import {writeFileSync} from 'node:fs';
           const url=process.env.SIBIL_API_URL || '';
-          if(url && (new URL(url).protocol !== 'https:' || new URL(url).origin !== url)) throw Error('SIBIL_API_URL must be an HTTPS origin without path or trailing slash');
+          if(url && (new URL(url).protocol !== 'https:' || (new URL(url).origin !== url && !/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url)))) throw Error('SIBIL_API_URL must be an HTTPS origin or Apps Script web app /exec URL');
           writeFileSync('public/config.js','window.SIBIL_CONFIG = Object.freeze('+JSON.stringify({apiBaseUrl:url})+');'+String.fromCharCode(10));
           JS
       - uses: actions/configure-pages@v5

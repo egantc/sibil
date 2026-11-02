@@ -9,9 +9,11 @@ $('period').value=today().slice(0,7);document.querySelector('[name=paidAt]').val
 function message(s){$('message').textContent=s;}
 async function api(url,body){
  if(onPages&&!apiBase)throw Error('Backend belum dikonfigurasi. Admin perlu mengisi SIBIL_API_URL di pengaturan repository.');
- const headers={...(body?{'Content-Type':'application/json'}:{}),...(sessionToken?{Authorization:'Bearer '+sessionToken}:{})};
- let r;try{r=await fetch(apiBase+'/api/'+url,{method:body?'POST':'GET',credentials:apiBase?'omit':'same-origin',headers,body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(20000)});}catch{throw Error('Backend tidak dapat dihubungi. Periksa koneksi dan konfigurasi hosting.');}
+ const gas=apiBase.startsWith('https://script.google.com/macros/s/');
+ const headers=gas?{'Content-Type':'text/plain;charset=utf-8'}:{...(body?{'Content-Type':'application/json'}:{}),...(sessionToken?{Authorization:'Bearer '+sessionToken}:{})};
+ let r;try{r=await fetch(gas?apiBase:apiBase+'/api/'+url,{method:gas||body?'POST':'GET',credentials:apiBase?'omit':'same-origin',headers,body:gas?JSON.stringify({action:url,body:body||{},token:sessionToken}):body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(20000)});}catch{throw Error('Backend tidak dapat dihubungi. Periksa koneksi dan konfigurasi hosting.');}
  let d;try{d=await r.json();}catch{throw Error('Respons backend tidak valid. Periksa URL API.');}
+ if(gas&&r.ok){if(!d.ok){if(d.status===401){sessionToken='';showLogin();}throw Error(d.error||'Operasi Apps Script gagal');}d=d.data;}
  if(!r.ok){if(r.status===401){sessionToken='';showLogin();}throw Error(d.error||'Permintaan gagal');}
  if(url==='login')sessionToken=d.token;
  if(url==='logout')sessionToken='';
