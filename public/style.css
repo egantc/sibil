@@ -104,14 +104,14 @@
     
 @media(max-width:600px){.month-selector{flex-wrap:wrap}.brand-title{white-space:normal}}
 
-/* Self-contained SVG crops the supplied photograph without redrawing the logo. */
+/* Cropped PNG with real alpha transparency; preserve the source logo colors. */
 .sulnet-logo {
   display: block;
   width: 104px;
   max-width: 104px;
   height: auto;
-  background: white;
-  border-radius: 5px;
+  background: transparent;
+  border-radius: 0;
   flex-shrink: 0;
 }
 .login-logo { margin: 0 auto 16px; filter: none; line-height: 0; }
