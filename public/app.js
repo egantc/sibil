@@ -1,8 +1,22 @@
 const $=id=>document.getElementById(id), rup=v=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(v);
-let db;const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'});
+let db, sessionToken='';
+const configuredApi=window.SIBIL_CONFIG?.apiBaseUrl||'';
+const onPages=location.hostname.endsWith('.github.io');
+let apiBase=configuredApi.replace(/\/$/,'');
+if(apiBase){const u=new URL(apiBase);if(u.protocol!=='https:')throw Error('Backend harus menggunakan HTTPS');}
+const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'});
 $('period').value=today().slice(0,7);document.querySelector('[name=paidAt]').value=today();
 function message(s){$('message').textContent=s;}
-async function api(url,body){const r=await fetch('/api/'+url,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});const d=await r.json();if(!r.ok){if(r.status===401)showLogin();throw Error(d.error||'Permintaan gagal');}return d;}
+async function api(url,body){
+ if(onPages&&!apiBase)throw Error('Backend belum dikonfigurasi. Admin perlu mengisi SIBIL_API_URL di pengaturan repository.');
+ const headers={...(body?{'Content-Type':'application/json'}:{}),...(sessionToken?{Authorization:'Bearer '+sessionToken}:{})};
+ let r;try{r=await fetch(apiBase+'/api/'+url,{method:body?'POST':'GET',credentials:apiBase?'omit':'same-origin',headers,body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(20000)});}catch{throw Error('Backend tidak dapat dihubungi. Periksa koneksi dan konfigurasi hosting.');}
+ let d;try{d=await r.json();}catch{throw Error('Respons backend tidak valid. Periksa URL API.');}
+ if(!r.ok){if(r.status===401){sessionToken='';showLogin();}throw Error(d.error||'Permintaan gagal');}
+ if(url==='login')sessionToken=d.token;
+ if(url==='logout')sessionToken='';
+ return d;
+}
 function showLogin(){$('login').hidden=false;$('dashboard').hidden=true;$('logout').hidden=true;}
 function el(tag,text){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;}
 function table(id,headers,rows){const t=el('table'),head=el('tr');headers.forEach(h=>head.append(el('th',h)));t.append(head);if(!rows.length){const tr=el('tr'),td=el('td','Belum ada data.');td.colSpan=headers.length;tr.append(td);t.append(tr);}rows.forEach(row=>{const tr=el('tr');row.forEach(v=>{const td=el('td');td.append(v instanceof Node?v:document.createTextNode(String(v)));tr.append(td);});t.append(tr);});$(id).replaceChildren(t);}
