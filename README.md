@@ -1,46 +1,28 @@
-# Sibil — SulNet Billing
+# Sibil — dashboard pembayaran SulNet
 
-Website billing dengan **GitHub Pages + Google Apps Script + Google Sheets**, tanpa Render atau service account. QRIS ditunda. Frontend dan backend Apps Script sudah disiapkan; deployment dan akses spreadsheet asli perlu diatur oleh pemilik akun Google.
+Migrasi dashboard asli ke GitHub Pages. Tampilan gelap, pilihan bulan, total pelanggan, cash, transfer, belum bayar, persentase, grafik tahunan, dan perubahan status mengikuti kode awal. **Tidak membuat database/tagihan baru atau mengimpor data.**
 
-## 1. Siapkan Apps Script
+Frontend: https://egantc.github.io/sibil/ . Backend: Apps Script. Spreadsheet tetap tab `Pembayaran 2026`, nama pelanggan kolom B mulai baris 4, header bulan baris 3 mulai kolom C. CASH dan TRUE dihitung sebagai cash, TRANSFER sebagai transfer, lainnya belum bayar. Reset menulis boolean false. Kolom rumus selain nama bulan tidak ditulis. Pelanggan bernama sama dibedakan menurut baris dan nama diperiksa ulang sebelum menyimpan. Jangan mengurutkan spreadsheet dari aplikasi lain saat melakukan pembaruan; ScriptLock hanya mengunci operasi Apps Script ini.
 
-1. Backup spreadsheet lama. Buat proyek di https://script.google.com dengan akun yang dapat mengedit spreadsheet.
-2. Salin `apps-script/Code.gs` ke `Code.gs` proyek tersebut. Aktifkan tampilan manifest di Project Settings dan salin `apps-script/appsscript.json` ke manifest proyek.
-3. Di **Project Settings → Script Properties**, isi `SPREADSHEET_ID`, `ADMIN_USERNAME`, dan `ADMIN_PASSWORD` (unik, minimal 6 karakter). Jangan simpan password di repo, halaman website, variable publik GitHub, atau chat.
-4. Jalankan `setupSibil` dari editor, lalu berikan izin akses spreadsheet. Fungsi ini membuat empat tab baru bila belum ada, tanpa menimpa tab lama `Pembayaran 2026`.
-5. Pilih **Deploy → New deployment → Web app**. Execute as: **Me**; Who has access: **Anyone**, bila diizinkan akun/organisasi Google. Backend memeriksa sesi pada setiap akses data. Akun Workspace yang melarang web app publik perlu perubahan kebijakan atau pendekatan deployment lain.
-6. Salin URL deployment berakhiran `/exec`, bukan `/dev`. Setelah mengubah kode, edit deployment dan pilih versi baru untuk menerapkan pembaruan.
+## Perbarui backend Google (wajib)
 
-## 2. Aktifkan website
+1. Di proyek Apps Script yang sudah digunakan, ganti seluruh `Code.gs` dengan `apps-script/Code.gs` dari repo ini. Fungsi lama tanpa pemeriksaan sesi jangan disisakan. `Sidebar.html` lama tidak diperlukan backend baru; tampilan disajikan GitHub Pages. Fungsi `doGet` hanya mengembalikan informasi API.
+2. Manifest `appsscript.json` gunakan isi `apps-script/appsscript.json`. Tampilkan file manifest dari Setelan proyek, jangan membuat file `.json.gs`.
+3. Pertahankan **Script Properties** `SPREADSHEET_ID` (ID saja), `ADMIN_USERNAME`, `ADMIN_PASSWORD` (minimal 6 karakter). Opsional `SHEET_NAME` untuk nama tab berbeda; default `Pembayaran 2026`.
+4. Jalankan `setupSibil` dari editor untuk memverifikasi izin dan tab. Versi ini hanya membaca; tidak membuat tab atau mengubah sel. Jika ada tab Sibil_* dari percobaan sebelumnya, biarkan; backend ini tidak menggunakannya.
+5. **Deploy/Terapkan → Manage deployments/Kelola deployment → Edit → New version/Versi baru → Deploy**. Execute as **Me**, akses **Anyone** bila diizinkan kebijakan akun Google. Dengan mengedit deployment yang sama, URL `/exec` tetap sama.
+6. URL backend sudah di `public/config.js`. Bila membuat deployment baru dengan URL berbeda, perbarui file ini atau variable Actions `SIBIL_API_URL`. Variable tersebut mengalahkan konfigurasi file, jadi hapus variable lama jika masih berisi URL salah.
 
-1. GitHub repo `egantc/sibil` → **Settings → Pages → Source → GitHub Actions**.
-2. Endpoint Apps Script sudah diisi di `public/config.js`. Opsional: **Settings → Secrets and variables → Actions → Variables** → `SIBIL_API_URL` untuk mengganti URL tanpa mengedit kode. Jika variable ini sudah ada, nilainya mengalahkan URL di file; hapus atau perbarui variable lama. URL endpoint publik, bukan rahasia. Jangan memasukkan password di sini.
-3. **Actions → Deploy frontend to GitHub Pages → Run workflow**.
-4. Setelah workflow sukses, buka `https://egantc.github.io/sibil/`. Login, tambah pelanggan percobaan, buat tagihan, catat pembayaran sebagian, periksa tab Sheets dan riwayat, cetak kuitansi, lalu logout.
+## GitHub Pages
 
-Frontend menggunakan POST `text/plain` tanpa custom header ke Apps Script ContentService agar tidak memerlukan CORS preflight. Token dikirim dalam body, disimpan hanya dalam memori browser, dan tidak masuk URL. Browser harus dapat mengikuti redirect Google dan membaca respons JSON. **Pengujian browser terhadap deployment `/exec` asli tetap diperlukan**; mock lokal tidak membuktikan konfigurasi akses Google/CORS berhasil. Jangan memakai `no-cors` karena respons tidak dapat dibaca. Jangan mempublikasikan spreadsheet sebagai data publik untuk mengatasi kegagalan koneksi.
+Settings → Pages → Source → **GitHub Actions**. Workflow menguji kode dan menerbitkan hanya folder `public`. Setelah deployment sukses, buka website dan login memakai Properties. Bila memakai source branch/root, `index.html` mengarahkan ke `public/`.
 
-## Fitur
+Tidak perlu Render, Node hosting, service account, atau kartu kredit untuk alur ini. Kuota Google dan GitHub serta kebijakan akun tetap berlaku. Node 22 hanya untuk pemeriksaan developer dan CI, bukan server aplikasi: `npm ci`, `npm run check`, `npm test`.
 
-Login/logout, ID pelanggan unik, pencarian dan edit pelanggan, paket/tarif, status aktif, tagihan unik pelanggan-periode, pembayaran cash/transfer sebagian, validasi kelebihan bayar, filter bulan/tahun, ringkasan, riwayat, kuitansi cetak, dan tombol pesan WhatsApp siap kirim. KPI uang masuk merujuk pembayaran untuk tagihan pada periode terpilih, bukan arus kas berdasarkan tanggal transaksi.
+## Verifikasi setelah deployment
 
-## Data dan batas layanan
+Login → pilih bulan → cocokkan jumlah cash/transfer/belum bayar dengan Sheet. Pada pelanggan percobaan, simpan status, periksa hanya sel bulan tersebut berubah, lalu reset bila perlu. Periksa nama duplikat diproses sesuai baris yang dipilih. Logout harus menutup akses. Pengujian lokal menggunakan mock SpreadsheetApp/CacheService dan tidak membuktikan akses Google asli atau CORS deployment. Koneksi browser memakai POST text/plain, mengikuti redirect ContentService tanpa custom header; jangan gunakan no-cors atau mempublikasikan spreadsheet.
 
-| Tab | Header baris 1 (urut dari A) |
-| --- | --- |
-| Sibil_Pelanggan | id, name, phone, plan, rate, active |
-| Sibil_Tagihan | id, customerId, period, amount, dueDate |
-| Sibil_Pembayaran | id, invoiceId, amount, method, paidAt, createdAt |
-| Sibil_Riwayat | id, actor, at, action, before, after |
+Sesi token hanya di memori browser, maksimal 6 jam dalam CacheService (bisa berakhir lebih awal). Refresh meminta login ulang. Cache membatasi kegagalan login secara global, bukan per IP. Jangan kirim password ke chat atau commit. Saat koneksi gagal setelah simpan, periksa sel sebelum mengulang. Data nama pelanggan ditampilkan dengan textContent. Reset meminta konfirmasi; pesan gagal tidak ditampilkan sebagai sukses.
 
-Tab lama tidak diimpor otomatis: tarif, nomor WhatsApp, paket, tanggal bayar dan jatuh tempo perlu pemetaan yang benar sebelum migrasi. Nilai TRUE lama adalah status lunas cash, bukan nominal uang.
-
-Apps Script menggunakan ScriptLock untuk operasi aplikasi. Sheets bukan database transaksional: error antar penulisan tab dapat menghasilkan penulisan sebagian. Periksa data sebelum mengulang pembayaran setelah error. Jangan mengedit tab Sibil bersamaan dari aplikasi lain. Riwayat dapat diedit pemilik spreadsheet dan bukan audit antimanipulasi. Fitur reversal/reset pembayaran belum disediakan.
-
-Sesi memakai CacheService maksimal 6 jam, dapat hilang lebih awal dan meminta login ulang. Refresh frontend juga meminta login ulang. Batas login global 20 kegagalan per 15 menit karena Apps Script tidak menyediakan IP klien tepercaya; cache dapat dievikt sehingga bukan perlindungan brute-force yang persisten. Cocok untuk admin skala kecil, bukan layanan publik berskala besar. Kuota eksekusi, concurrency dan penyimpanan Google tetap berlaku. Umumnya akun Google biasa tidak membutuhkan kartu untuk Apps Script/Sheets dalam kuotanya; kebijakan layanan dapat berubah.
-
-## Pengembangan dan pengujian
-
-Node.js 22+: `npm ci`, `npm run check`, `npm test`. Pengujian mencakup API Node lokal, backend Apps Script dengan layanan Google simulasi, dan format transport frontend. Tidak membuktikan deployment Google asli.
-
-`server.js` tetap tersedia sebagai alternatif lokal/Node, bukan syarat deployment Apps Script. Untuk demo lokal: salin `.env.example` ke `.env`, isi password admin, gunakan `DATA_MODE=demo`, lalu `npm start`. Demo menggunakan `.data/demo.json`, bukan spreadsheet asli. Konfigurasi Render tidak lagi menjadi jalur deployment utama.
+Kode awal tidak menyediakan nominal tagihan atau tanggal transaksi. Fitur invoice, pembayaran sebagian, QRIS dan pemindahan data ditunda sesuai konsep awal. Riwayat commit menyimpan implementasi terdahulu bila dibutuhkan, tanpa memakainya di versi ini.

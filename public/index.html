@@ -1,1 +1,119 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sibil · SulNet Billing</title><link rel="stylesheet" href="style.css"><script src="config.js"></script><script src="app.js" defer></script></head><body><header><div><small>SULNET / BILLING</small><h1>Sibil<span>•</span></h1></div><button id="logout" hidden>Keluar</button></header><main><p id="message" role="status" aria-live="polite"></p><section id="login"><small>SELAMAT DATANG</small><h2>Kelola tagihan, lebih rapi.</h2><p>Masuk untuk memantau pelanggan dan pembayaran.</p><form id="loginForm"><label>Username<input name="username" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button>Masuk dashboard →</button></form></section><div id="dashboard" hidden><div class="toolbar"><div><small>RINGKASAN BULANAN</small><h2>Dashboard pembayaran</h2></div><label>Periode<input type="month" id="period" required></label><button id="refresh">Muat ulang</button></div><p id="mode"></p><div id="kpis" class="kpis"></div><nav><button data-tab="billing">Tagihan</button><button data-tab="customers">Pelanggan</button><button data-tab="history">Riwayat</button></nav><section id="billing"><h2>Tagihan pelanggan</h2><form id="invoiceForm" class="inline"><label>Pelanggan<select name="customerId" id="invoiceCustomer" required></select></label><label>Nominal<input name="amount" type="number" min="1" step="1" required></label><label>Jatuh tempo<input name="dueDate" type="date" required></label><button>Buat tagihan</button></form><div id="invoices" class="table-wrap"></div><h3>Catat pembayaran</h3><form id="paymentForm" class="inline"><label>Tagihan<select name="invoiceId" id="paymentInvoice" required></select></label><label>Nominal<input name="amount" type="number" min="1" step="1" required></label><label>Metode<select name="method"><option>CASH</option><option>TRANSFER</option></select></label><label>Tanggal<input name="paidAt" type="date" required></label><button>Simpan pembayaran</button></form><h3>Pembayaran periode ini</h3><div id="payments" class="table-wrap"></div></section><section id="customers" hidden><h2>Kelola pelanggan</h2><form id="customerForm" class="inline"><input name="id" type="hidden"><label>Nama<input name="name" maxlength="150" required></label><label>WhatsApp<input name="phone" placeholder="62812…" required></label><label>Paket<input name="plan" required></label><label>Tarif<input name="rate" type="number" min="1" step="1" required></label><label>Status<select name="active"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></label><button>Simpan pelanggan</button><button type="reset">Batal edit</button></form><label>Cari pelanggan<input id="search" placeholder="Nama atau paket…"></label><div id="customerList" class="table-wrap"></div></section><section id="history" hidden><h2>Riwayat perubahan</h2><div id="historyList" class="table-wrap"></div></section></div></main><footer>Sibil · SulNet Billing — pencatatan pelanggan dan pembayaran</footer></body></html>
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <title>Sibil · SulNet Billing</title>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+
+    <div class="login-screen" id="loginBox">
+      <div class="login-logo">📊</div>
+      <h2>SulNet Billing</h2>
+      <p>Silakan masuk untuk mengelola billing system</p>
+      
+      <div class="login-group">
+        <label>Username</label>
+        <input type="text" id="loginUser" autocomplete="username" placeholder="Masukkan username">
+      </div>
+      
+      <div class="login-group">
+        <label>Password</label>
+        <input type="password" id="loginPass" autocomplete="current-password" placeholder="Masukkan password">
+      </div>
+      
+      <button class="btn-login" id="loginButton">Masuk Ke Dashboard</button>
+      <div id="loginError"></div>
+    </div>
+
+    <div class="dashboard-container" id="mainDashboard" style="display: none;">
+      
+      <div class="card full-width" style="padding: 10px 15px; background: transparent; border: none; box-shadow: none; margin-bottom: -10px;">
+        <div class="month-selector">
+          <div class="brand-title">🚀 SULNET BILLING SYSTEM</div><button id="logoutButton" type="button">Keluar</button>
+          <div>
+            <select id="mainMonthFilter" >
+              <option value="">Memuat data bulan...</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card full-width error-alert" id="dbErrorContainer" style="display:none;">
+        ⚠️ KONEKSI DATABASE GAGAL: <span id="dbErrorMessage"></span>
+      </div>
+
+      <div class="card full-width">
+        <div class="kpi-grid">
+          <div class="kpi-box">
+            <p>Total Pelanggan</p>
+            <div class="kpi-num kpi-total" id="kpiTotal">0</div>
+          </div>
+          <div class="kpi-box">
+            <p>Lunas (Cash)</p>
+            <div class="kpi-num kpi-cash" id="kpiCash">0</div>
+          </div>
+          <div class="kpi-box">
+            <p>Lunas (Transfer)</p>
+            <div class="kpi-num kpi-transfer" id="kpiTransfer">0</div>
+          </div>
+          <div class="kpi-box">
+            <p>Belum Bayar</p>
+            <div class="kpi-num kpi-belum" id="kpiBelum">0</div>
+          </div>
+          <div class="kpi-box">
+            <p>Persentase</p>
+            <div class="kpi-num kpi-pct" id="kpiPct">0%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card form-card">
+        <h2>Input Pembayaran</h2>
+        <div class="form-group">
+          <label style="color:var(--text-dim); font-size:13px; margin-bottom:5px; display:block;">Pilih Pelanggan:</label>
+          <select id="inputCustomer"><option>Memuat...</option></select>
+        </div>
+        <div class="form-group">
+          <label style="color:var(--text-dim); font-size:13px; margin-bottom:5px; display:block;">Metode / Status Bayar:</label>
+          <select id="inputStatus">
+            <option value="CASH">💵 CASH / TUNAI</option>
+            <option value="TRANSFER">📱 TRANSFER BANK</option>
+            <option value="FALSE">🔴 RESET (BELUM BAYAR)</option>
+          </select>
+        </div>
+        <button id="saveButton" disabled>Simpan Pembayaran</button>
+        <div id="statusMessage"></div>
+      </div>
+
+      <div class="card">
+        <h2>Monitoring Pembayaran Bulanan</h2>
+        <div class="list-container">
+          <div>
+            <h4 style="color: var(--accent-green); margin: 0 0 8px 0; font-size:12px;">💵 Cash</h4>
+            <div class="status-list" id="listCash"><div>Kosong</div></div>
+          </div>
+          <div>
+            <h4 style="color: var(--accent-orange); margin: 0 0 8px 0; font-size:12px;">📱 Transfer</h4>
+            <div class="status-list" id="listTransfer"><div>Kosong</div></div>
+          </div>
+          <div>
+            <h4 style="color: var(--accent-red); margin: 0 0 8px 0; font-size:12px;">🔴 Belum Bayar</h4>
+            <div class="status-list" id="listBelum"><div>Kosong</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card full-width">
+        <h2>Tren Efisiensi Penagihan 2026</h2>
+        <div class="chart-trend" id="trendChartContainer"></div>
+      </div>
+
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js" defer></script>
+  </body>
+</html>
