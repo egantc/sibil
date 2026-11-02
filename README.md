@@ -14,7 +14,7 @@ Website billing dengan **GitHub Pages + Google Apps Script + Google Sheets**, ta
 ## 2. Aktifkan website
 
 1. GitHub repo `egantc/sibil` → **Settings → Pages → Source → GitHub Actions**.
-2. **Settings → Secrets and variables → Actions → Variables**: buat `SIBIL_API_URL` berisi URL `/exec` Apps Script tadi. URL ini publik, bukan rahasia. Jangan memasukkan password di sini.
+2. Endpoint Apps Script sudah diisi di `public/config.js`. Opsional: **Settings → Secrets and variables → Actions → Variables** → `SIBIL_API_URL` untuk mengganti URL tanpa mengedit kode. Jika variable ini sudah ada, nilainya mengalahkan URL di file; hapus atau perbarui variable lama. URL endpoint publik, bukan rahasia. Jangan memasukkan password di sini.
 3. **Actions → Deploy frontend to GitHub Pages → Run workflow**.
 4. Setelah workflow sukses, buka `https://egantc.github.io/sibil/`. Login, tambah pelanggan percobaan, buat tagihan, catat pembayaran sebagian, periksa tab Sheets dan riwayat, cetak kuitansi, lalu logout.
 

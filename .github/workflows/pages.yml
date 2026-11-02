@@ -29,8 +29,11 @@ jobs:
           SIBIL_API_URL: ${{ vars.SIBIL_API_URL }}
         run: |
           node --input-type=module <<'JS'
-          import {writeFileSync} from 'node:fs';
-          const url=process.env.SIBIL_API_URL || '';
+          import {readFileSync,writeFileSync} from 'node:fs';
+          import {runInNewContext} from 'node:vm';
+          const context={window:{}};
+          runInNewContext(readFileSync('public/config.js','utf8'),context);
+          const url=process.env.SIBIL_API_URL || context.window.SIBIL_CONFIG.apiBaseUrl || '';
           if(url && (new URL(url).protocol !== 'https:' || (new URL(url).origin !== url && !/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url)))) throw Error('SIBIL_API_URL must be an HTTPS origin or Apps Script web app /exec URL');
           writeFileSync('public/config.js','window.SIBIL_CONFIG = Object.freeze('+JSON.stringify({apiBaseUrl:url})+');'+String.fromCharCode(10));
           JS
