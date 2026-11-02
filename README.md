@@ -26,3 +26,27 @@ Login → pilih bulan → cocokkan jumlah cash/transfer/belum bayar dengan Sheet
 Sesi token hanya di memori browser, maksimal 6 jam dalam CacheService (bisa berakhir lebih awal). Refresh meminta login ulang. Cache membatasi kegagalan login secara global, bukan per IP. Jangan kirim password ke chat atau commit. Saat koneksi gagal setelah simpan, periksa sel sebelum mengulang. Data nama pelanggan ditampilkan dengan textContent. Reset meminta konfirmasi; pesan gagal tidak ditampilkan sebagai sukses.
 
 Kode awal tidak menyediakan nominal tagihan atau tanggal transaksi. Fitur invoice, pembayaran sebagian, QRIS dan pemindahan data ditunda sesuai konsep awal. Riwayat commit menyimpan implementasi terdahulu bila dibutuhkan, tanpa memakainya di versi ini.
+
+## Sibil V2
+
+V2 tersedia terpisah di https://egantc.github.io/sibil/v2/ setelah workflow Pages berhasil. Versi sebelumnya tetap di /sibil/. Backup kode/aset sebelum V2 ada pada branch `backup/pre-v2`, commit `78e6ce8047a1658fd47d4ad2fe211d1c6310f7c7`. Backup Git ini tidak mencakup spreadsheet Google, Script Properties, atau deployment Google.
+
+V2 memakai backend dan `public/config.js` yang sama. Tidak perlu mengubah Apps Script untuk menggunakan frontend V2. Daftar pelanggan dapat dicari dan difilter, pembayaran dicatat melalui dialog, reset memerlukan centang konfirmasi nama+bulan, dan footer menunjukkan **Sibil V2**. Pembaruan tetap menulis data asli pada sheet yang dipilih backend: memakai dua frontend bukan berarti datanya terpisah.
+
+Backend lama mengirim status dalam daftar nama, tanpa status per baris. Untuk nama duplikat, V2 menampilkan **Periksa status** agar tidak menebak pembayaran baris yang salah; admin perlu mencocokkan sel di Sheet. Penyimpanan tetap berdasarkan row+name, mengikuti validasi backend.
+
+Rancangan: `docs/sibil-v2-design.md`. Skill dari `ekokominfo/agent-skills` revisi `3eb9c2ea89aaa910a197ccc886c1b96b5f4bacaf` dipasang dan diverifikasi checksum di `/workspace/sibil-tools/.agents/skills/`; panduan desain dan aksesibilitas dibaca langsung. Pengujian browser memakai Chromium dan Playwright, dengan respons Apps Script disimulasikan agar tidak menyentuh data pelanggan asli.
+
+Uji ulang lokal:
+
+```sh
+npm ci
+npm run check
+npm test
+# Terminal terpisah:
+python -m http.server 8765 --directory public
+# Dengan Chromium terpasang; CHROMIUM_PATH dapat menunjuk executable lain:
+npm run test:browser
+```
+
+Pengujian browser mencakup login gagal/berhasil, tampilkan password, search, filter, update cash, reset terkonfirmasi, pergantian bulan, footer, logout dan overflow pada 375/768/1440px. Screenshot lokal tersimpan di `output/playwright/` (tidak dipublikasikan). Uji simulasi tidak membuktikan akses deployment Google asli. Tidak ada transaksi Google asli yang dijalankan selama pengembangan V2.

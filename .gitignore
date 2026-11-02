@@ -1,5 +1,6 @@
 node_modules/
+output/
 .env
-.data/
 *.log
+.data/
 credentials*.json
