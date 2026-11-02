@@ -6,7 +6,7 @@ Website billing dengan **GitHub Pages + Google Apps Script + Google Sheets**, ta
 
 1. Backup spreadsheet lama. Buat proyek di https://script.google.com dengan akun yang dapat mengedit spreadsheet.
 2. Salin `apps-script/Code.gs` ke `Code.gs` proyek tersebut. Aktifkan tampilan manifest di Project Settings dan salin `apps-script/appsscript.json` ke manifest proyek.
-3. Di **Project Settings → Script Properties**, isi `SPREADSHEET_ID`, `ADMIN_USERNAME`, dan `ADMIN_PASSWORD` (unik, minimal 12 karakter). Jangan simpan password di repo, halaman website, variable publik GitHub, atau chat.
+3. Di **Project Settings → Script Properties**, isi `SPREADSHEET_ID`, `ADMIN_USERNAME`, dan `ADMIN_PASSWORD` (unik, minimal 6 karakter). Jangan simpan password di repo, halaman website, variable publik GitHub, atau chat.
 4. Jalankan `setupSibil` dari editor, lalu berikan izin akses spreadsheet. Fungsi ini membuat empat tab baru bila belum ada, tanpa menimpa tab lama `Pembayaran 2026`.
 5. Pilih **Deploy → New deployment → Web app**. Execute as: **Me**; Who has access: **Anyone**, bila diizinkan akun/organisasi Google. Backend memeriksa sesi pada setiap akses data. Akun Workspace yang melarang web app publik perlu perubahan kebijakan atau pendekatan deployment lain.
 6. Salin URL deployment berakhiran `/exec`, bukan `/dev`. Setelah mengubah kode, edit deployment dan pilih versi baru untuk menerapkan pembaruan.

@@ -8,7 +8,7 @@ const secure=process.env.NODE_ENV==='production';
 const frontendOrigin=process.env.FRONTEND_ORIGIN;
 if(frontendOrigin && (new URL(frontendOrigin).origin!==frontendOrigin || !frontendOrigin.startsWith('https://'))) throw Error('FRONTEND_ORIGIN must be an HTTPS origin without path.');
 if(process.env.TRUST_PROXY_HOPS) app.set('trust proxy',Number(process.env.TRUST_PROXY_HOPS));
-if(!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD.length<12) throw Error('Set ADMIN_PASSWORD (minimum 12 characters).');
+if(!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD.length<6) throw Error('Set ADMIN_PASSWORD (minimum 6 characters).');
 const salt=randomBytes(32), passwordHash=scryptSync(process.env.ADMIN_PASSWORD,salt,64);
 const username=process.env.ADMIN_USERNAME||'admin';
 const sessions=new Map(), attempts=new Map();
