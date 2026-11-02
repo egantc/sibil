@@ -104,27 +104,17 @@
     
 @media(max-width:600px){.month-selector{flex-wrap:wrap}.brand-title{white-space:normal}}
 
-/* Crop the supplied JPG visually: retain the original logo pixels and colors.
-   Source 1280×1280; visible area x=225, y=300, width=840, height=680. */
+/* Self-contained SVG crops the supplied photograph without redrawing the logo. */
 .sulnet-logo {
-  position: relative;
   display: block;
-  width: 140px;
-  aspect-ratio: 840 / 680;
-  overflow: hidden;
-  background: #fff;
-  border-radius: 4px;
+  width: 104px;
+  max-width: 104px;
+  height: auto;
+  background: white;
+  border-radius: 5px;
   flex-shrink: 0;
 }
-.sulnet-logo img {
-  position: absolute;
-  width: 152.380952%;
-  height: auto;
-  max-width: none;
-  left: -26.785714%;
-  top: -44.117647%;
-}
-.login-logo { margin: 0 auto 20px; filter: none; }
+.login-logo { margin: 0 auto 16px; filter: none; line-height: 0; }
 .login-logo .sulnet-logo { margin: auto; }
 .month-selector .brand-title {
   display: flex;
@@ -135,7 +125,7 @@
   font-size: 20px;
   text-transform: none;
 }
-.brand-title .sulnet-logo { width: 68px; }
+.brand-title .sulnet-logo { width: 52px; max-width: 52px; }
 .brand-title small {
   display: block;
   font-size: 11px;
