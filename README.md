@@ -29,7 +29,7 @@ Kode awal tidak menyediakan nominal tagihan atau tanggal transaksi. Fitur invoic
 
 ## Sibil V2
 
-V2 tersedia terpisah di https://egantc.github.io/sibil/v2/ setelah workflow Pages berhasil. Versi sebelumnya tetap di /sibil/. Backup kode/aset sebelum V2 ada pada branch `backup/pre-v2`, commit `78e6ce8047a1658fd47d4ad2fe211d1c6310f7c7`. Backup Git ini tidak mencakup spreadsheet Google, Script Properties, atau deployment Google.
+V2 menjadi aplikasi utama di https://egantc.github.io/sibil/ setelah workflow Pages berhasil. URL /sibil/v2/ mengarahkan ke halaman utama. Versi sebelumnya tersimpan di branch backup, bukan dipakai sebagai aplikasi utama. Backup kode/aset sebelum V2 ada pada branch `backup/pre-v2`, commit `78e6ce8047a1658fd47d4ad2fe211d1c6310f7c7`. Backup Git ini tidak mencakup spreadsheet Google, Script Properties, atau deployment Google.
 
 V2 memakai backend dan `public/config.js` yang sama. Tidak perlu mengubah Apps Script untuk menggunakan frontend V2. Daftar pelanggan dapat dicari dan difilter, pembayaran dicatat melalui dialog, reset memerlukan centang konfirmasi nama+bulan, dan footer menunjukkan **Sibil V2**. Pembaruan tetap menulis data asli pada sheet yang dipilih backend: memakai dua frontend bukan berarti datanya terpisah.
 

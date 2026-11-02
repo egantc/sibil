@@ -13,3 +13,5 @@ Desktop: brand/account header; title and month toolbar; one summary band; custom
 Review against brief: no SaaS marketing hero, arbitrary badges, decorative numbering, monospace captions, animated entrances, or generic dark/neon palette. No invoice amounts or new spreadsheet model. Selected customer uses existing row+name check. No actual Google writes during local tests.
 
 Skills installed outside application repo at /workspace/sibil-tools/.agents/skills using the checksum-verifying installer from ekokominfo/agent-skills: frontend-design, ui-ux-pro-max, web-design-guidelines, playwright. Vendored instructions are not shipped to Pages. Source repository revision recorded during implementation in README. Fresh-session discovery depends on client support; consulted files directly for this task.
+
+Publication: V2 promoted to /sibil/ at user request; /sibil/v2/ redirects to it. Old code remains on backup/pre-v2.

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node --check public/app.js && node --check < apps-script/Code.gs && node --check public/v2/app.js",
+    "check": "node --check public/app.js && node --check < apps-script/Code.gs",
     "test:browser": "node scripts/verify-v2.cjs"
   },
   "engines": {
