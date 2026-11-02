@@ -57,3 +57,17 @@ Frontend dapat dipublikasikan di `https://egantc.github.io/sibil/` menggunakan w
 Tanpa URL backend, frontend menampilkan pesan konfigurasi, tidak menganggap data demo sebagai data asli. Frontend memakai bearer token di memori untuk menghindari ketergantungan pada third-party cookies. Refresh halaman meminta login ulang ketika frontend dan backend terpisah. CORS hanya mengizinkan origin yang dikonfigurasi, bukan wildcard; API tetap memerlukan autentikasi. Session berlaku maksimal 8 jam dan dicabut saat logout. Health check `/health` hanya membuktikan proses hidup; uji login dan baca/tulis data diperlukan untuk memverifikasi Google Sheets.
 
 Belum ada hosting backend yang dipilih atau diprovisikan oleh repository ini. Domain contoh bukan endpoint aktif. Jangan mengunggah credential service account atau password ke variable publik Pages. GitHub Pages tidak menjalankan server Node.
+
+## Deploy backend di Render
+
+Repository menyediakan `render.yaml` untuk satu web service paket Free (sesuai ketersediaan dan ketentuan Render saat dibuat). Jangan beralih ke paket berbayar tanpa menyetujui biayanya. Layanan gratis dapat tidur ketika tidak digunakan; akses pertama mungkin lambat.
+
+1. Login Render menggunakan akun yang dipilih. Hubungkan GitHub dan berikan akses ke `egantc/sibil`.
+2. Pilih **New → Blueprint**, pilih repository tersebut, tinjau konfigurasi `render.yaml`.
+3. Isi `ADMIN_PASSWORD` unik minimal 12 karakter dan `SPREADSHEET_ID` melalui kolom environment di Render. Jangan kirim password atau credential Google ke chat atau GitHub.
+4. Di pengaturan service Render, tambahkan **Secret File** bernama `google-service-account.json` berisi credential JSON service account Google yang memiliki akses Editor ke spreadsheet. File dipasang di `/etc/secrets/google-service-account.json`. Pastikan Google Sheets API aktif dan empat tab/header Sibil sudah disiapkan sesuai tabel di atas.
+5. Deploy/redeploy. Blueprint menggunakan `TRUST_PROXY_HOPS=1` untuk proxy Render. Pertahankan backend di belakang proxy Render, bukan proses Node yang dapat diakses langsung melalui jalur lain.
+6. Salin origin HTTPS yang benar dari dashboard Render. Jangan menebak nama domain dari nama service. Masukkan sebagai repository Actions variable `SIBIL_API_URL` di GitHub, lalu jalankan ulang workflow Pages.
+7. Uji login dari Pages, buat pelanggan percobaan dan tagihan, catat pembayaran, periksa hasil di Sheets dan riwayat, lalu logout. HTTP 200 pada `/health` belum membuktikan akses spreadsheet berhasil.
+
+Konfigurasi ini tidak membuat akun Render, mengunggah Secret File, atau membuktikan deployment telah berjalan. Backend tidak dapat memakai data asli sebelum credential dan spreadsheet siap. Blueprint tetap memerlukan review dan pengaturan di dashboard Render.
