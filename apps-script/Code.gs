@@ -6,7 +6,7 @@ function setupSibil(){var sh=sheet_();console.log('Tab pembayaran ditemukan; bar
 function json_(v){return ContentService.createTextOutput(JSON.stringify(v)).setMimeType(ContentService.MimeType.JSON);}
 function digest_(v){return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,v,Utilities.Charset.UTF_8));}
 function equal_(a,b){var x=digest_(a),y=digest_(b),d=0;for(var i=0;i<x.length;i++)d|=x.charCodeAt(i)^y.charCodeAt(i);return d===0;}
-function doGet(){return json_({ok:true,service:'Sibil legacy-sheet API',version:2});}
+function doGet(){return json_({ok:true,service:'Sibil legacy-sheet API',version:3});}
 function doPost(e){var lock=LockService.getScriptLock(),locked=false;try{
  if(!e||!e.postData||e.postData.contents.length>100000)bad('Request tidak valid');
  var r=JSON.parse(e.postData.contents),b=r.body||{},cache=CacheService.getScriptCache();
@@ -20,11 +20,12 @@ function doPost(e){var lock=LockService.getScriptLock(),locked=false;try{
  if(typeof r.token!=='string'||r.token.length>200||!cache.get('session:'+digest_(r.token)))bad('Silakan login',401);
  if(r.action==='logout'){cache.remove('session:'+digest_(r.token));return json_({ok:true,data:{}});}
  if(r.action==='dashboard'){var data=dashboard_(b.month||'');if(data.error)bad(data.error,503);return json_({ok:true,data:data});}
+ if(r.action==='addCustomer')return json_({ok:true,data:addCustomer_(b)});
  if(r.action==='update')return json_({ok:true,data:update_(b)});
  bad('Action tidak dikenal',404);
  }catch(err){if(!err.status)console.error(err.name+': '+err.message);return json_({ok:false,status:err.status||500,error:err.status?err.message:'Gagal mengakses spreadsheet. Jalankan setupSibil di editor dan periksa izin akun deployment. Jika sedang menyimpan, periksa sel sebelum mencoba lagi.'});}finally{if(locked)lock.releaseLock();}}
 function update_(b){
- if(!Number.isInteger(b.row)||b.row<4||typeof b.name!=='string'||typeof b.month!=='string'||!['CASH','TRANSFER','FALSE'].includes(b.status))bad('Input pembayaran tidak valid');
+ if(!Number.isInteger(b.row)||b.row<4||typeof b.name!=='string'||typeof b.month!=='string'||!['CASH','TRANSFER','DISCOUNT','FALSE'].includes(b.status))bad('Input pembayaran tidak valid');
  var sh=sheet_();if(b.row>sh.getLastRow())bad('Data berubah. Muat ulang dashboard.',409);
  var name=String(sh.getRange(b.row,2).getValue()).trim();if(name!==b.name)bad('Urutan pelanggan berubah. Muat ulang sebelum menyimpan.',409);
  var allowed=['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];var month=b.month.trim().toUpperCase();if(allowed.indexOf(month)===-1)bad('Bulan tidak valid');
@@ -37,21 +38,21 @@ function dashboard_(selectedMonthName) {
     var sheet = sheet_();
     var lastRow = sheet.getLastRow();
     var lastCol = sheet.getLastColumn();
-    
+
     if (lastRow < 4) {
       return { error: "Belum ada data pelanggan di baris ke-4 ke bawah." };
     }
-    
+
     // 1. AMBIL SELURUH DATA SPREADSHEET SEKALIGUS KE MEMORI (Kunci Kecepatan)
     var allDataMatrix = sheet.getRange(1, 1, lastRow, lastCol).getValues();
-    
+
     // Header Bulan ada di Baris 3 (Index 2 di JavaScript), mulai Kolom C (Index 2)
     var headersRaw = allDataMatrix[2].slice(2);
     var monthsList = [];
-    
+
     // VALIDASI: Hanya ambil kolom JANUARI sampai DESEMBER. Abaikan kolom rumus di kanannya.
     var allowedMonths = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "OKTOBER ", "NOVEMBER", "DESEMBER"];
-    
+
     for (var h = 0; h < headersRaw.length; h++) {
       var val = headersRaw[h].toString().trim().toUpperCase();
       if (allowedMonths.indexOf(val) !== -1) {
@@ -62,21 +63,21 @@ function dashboard_(selectedMonthName) {
     if (monthsList.length === 0) {
       return { error: "Tidak ditemukan kolom nama bulan (JANUARI-DESEMBER) pada baris ke-3!" };
     }
-    
+
     // LOGIKA AUTO-PILIH BULAN BERJALAN SAAT INI
     if (!selectedMonthName || selectedMonthName === "Memuat data bulan..." || selectedMonthName === "") {
       var dateNow = new Date();
       var monthIndex = Number(Utilities.formatDate(dateNow,"Asia/Jakarta","M"))-1; // 0 = Jan, 4 = Mei, dst.
       var indonesianMonths = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
       var currentMonthString = indonesianMonths[monthIndex];
-      
+
       var foundMatch = monthsList.find(function(m) {
         return m.toUpperCase() === currentMonthString;
       });
-      
+
       selectedMonthName = foundMatch ? foundMatch : monthsList[0];
     }
-    
+
     // Cari indeks kolom internal matrix untuk bulan yang dipilih
     var targetColMatrixIndex = -1;
     for (var i = 0; i < headersRaw.length; i++) {
@@ -85,7 +86,7 @@ function dashboard_(selectedMonthName) {
         break;
       }
     }
-    
+
     if (targetColMatrixIndex === -1) {
       selectedMonthName = monthsList[0];
       for (var i = 0; i < headersRaw.length; i++) {
@@ -95,26 +96,29 @@ function dashboard_(selectedMonthName) {
         }
       }
     }
-    
+
     var listCash = [];
     var listTransfer = [];
     var listBelum = [];
+    var listDiscount = [];
     var allCustomers = [];
     var customers = [];
     var totalPelanggan = 0;
-    
+
     // Looping data mulai Baris ke-4 (Index 3 di JavaScript)
     for (var j = 3; j < allDataMatrix.length; j++) {
       var name = allDataMatrix[j][1].toString().trim(); // Kolom B (Index 1)
       if (name === "") continue;
-      
+
       totalPelanggan++;
       allCustomers.push(name);
-      customers.push({row:j+1,name:name});
-      
+
+
       var status = (allDataMatrix[j][targetColMatrixIndex] !== undefined) ? allDataMatrix[j][targetColMatrixIndex].toString().toUpperCase().trim() : "FALSE";
-      
-      if (status === "CASH" || status === "TRUE") {
+
+      customers.push({row:j+1,name:name,status:status==='TRUE'?'CASH':['CASH','TRANSFER','DISCOUNT'].includes(status)?status:'FALSE'});
+      if (status === "DISCOUNT") { listDiscount.push(name);
+      } else if (status === "CASH" || status === "TRUE") {
         listCash.push(name);
       } else if (status === "TRANSFER") {
         listTransfer.push(name);
@@ -122,17 +126,17 @@ function dashboard_(selectedMonthName) {
         listBelum.push(name);
       }
     }
-    
+
     // HITUNG STATISTIK TREN TAHUNAN DARI MEMORI (Bukan dari Spreadsheet lagi, jauh lebih cepat)
     var monthlyStats = [];
     for (var k = 0; k < headersRaw.length; k++) {
       var mName = headersRaw[k].toString().trim();
       if (allowedMonths.indexOf(mName.toUpperCase()) === -1) continue; // Abaikan rumus di kanan desember
-      
+
       var currentLoopColIndex = k + 2;
       var paidCount = 0;
       var totalCount = 0;
-      
+
       for (var n = 3; n < allDataMatrix.length; n++) {
         if (allDataMatrix[n][1].toString().trim() !== "") {
           totalCount++;
@@ -145,9 +149,9 @@ function dashboard_(selectedMonthName) {
       var pct = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0;
       monthlyStats.push({ month: mName, percentage: pct, text: paidCount + "/" + totalCount });
     }
-    
+
     var totalSudah = listCash.length + listTransfer.length;
-    
+
     return {
       selectedMonth: selectedMonthName,
       months: monthsList,
@@ -155,6 +159,8 @@ function dashboard_(selectedMonthName) {
       sudahCount: totalSudah,
       cashCount: listCash.length,
       transferCount: listTransfer.length,
+      discountCount: listDiscount.length,
+      discountList: listDiscount,
       belumCount: listBelum.length,
       persentase: totalPelanggan > 0 ? Math.round((totalSudah / totalPelanggan) * 100) : 0,
       cashList: listCash,
@@ -164,9 +170,18 @@ function dashboard_(selectedMonthName) {
       customers: customers,
       stats: monthlyStats
     };
-    
+
   } catch(err) {
     return { error: err.message };
   }
 }
 
+
+function addCustomer_(b){
+ if(typeof b.name!=='string')bad('Nama pelanggan wajib diisi');
+ var name=b.name.trim();if(!name||name.length>150||/^[=+@-]/.test(name)||/[\r\n\t]/.test(name))bad('Nama pelanggan tidak valid');
+ var sh=sheet_(),last=sh.getLastRow();
+ if(last>=4&&sh.getRange(4,2,last-3,1).getValues().some(function(r){return String(r[0]).trim().toLowerCase()===name.toLowerCase();}))bad('Nama pelanggan sudah ada.',409);
+ var row=Math.max(4,last+1);if(row>sh.getMaxRows())sh.insertRowsAfter(sh.getMaxRows(),1);
+ sh.getRange(row,2).setValue(name);SpreadsheetApp.flush();return {message:'Pelanggan '+name+' berhasil ditambahkan.'};
+}

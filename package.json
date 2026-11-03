@@ -6,7 +6,7 @@
   "scripts": {
     "test": "node --test",
     "check": "node --check public/app.js && node --check < apps-script/Code.gs",
-    "test:browser": "node scripts/verify-v2.cjs"
+    "test:browser": "node scripts/verify-v2.cjs && node scripts/verify-revisions.cjs"
   },
   "engines": {
     "node": ">=22"

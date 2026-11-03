@@ -1,8 +1,8 @@
 # Sibil — dashboard pembayaran SulNet
 
-Migrasi dashboard asli ke GitHub Pages. Tampilan gelap, pilihan bulan, total pelanggan, cash, transfer, belum bayar, persentase, grafik tahunan, dan perubahan status mengikuti kode awal. **Tidak membuat database/tagihan baru atau mengimpor data.**
+Migrasi dashboard asli ke GitHub Pages. Tampilan gelap, pilihan bulan, total pelanggan, cash, transfer, belum bayar, persentase, grafik tahunan, dan perubahan status mengikuti kode awal. **Tidak membuat database/tagihan baru atau mengimpor data. Penambahan pelanggan dilakukan hanya lewat tombol Tambah pelanggan setelah login.**
 
-Frontend: https://egantc.github.io/sibil/ . Backend: Apps Script. Spreadsheet tetap tab `Pembayaran 2026`, nama pelanggan kolom B mulai baris 4, header bulan baris 3 mulai kolom C. CASH dan TRUE dihitung sebagai cash, TRANSFER sebagai transfer, lainnya belum bayar. Reset menulis boolean false. Kolom rumus selain nama bulan tidak ditulis. Pelanggan bernama sama dibedakan menurut baris dan nama diperiksa ulang sebelum menyimpan. Jangan mengurutkan spreadsheet dari aplikasi lain saat melakukan pembaruan; ScriptLock hanya mengunci operasi Apps Script ini.
+Frontend: https://egantc.github.io/sibil/ . Backend: Apps Script. Spreadsheet tetap tab `Pembayaran 2026`, nama pelanggan kolom B mulai baris 4, header bulan baris 3 mulai kolom C. CASH dan TRUE dihitung sebagai cash, TRANSFER sebagai transfer, DISCOUNT sebagai diskon/bayar sebagian, lainnya belum bayar. DISCOUNT tidak dihitung lunas dalam persentase dan tren. Reset menulis boolean false. Kolom rumus selain nama bulan tidak ditulis. Pelanggan bernama sama dibedakan menurut baris dan nama diperiksa ulang sebelum menyimpan. Jangan mengurutkan spreadsheet dari aplikasi lain saat melakukan pembaruan; ScriptLock hanya mengunci operasi Apps Script ini.
 
 ## Perbarui backend Google (wajib)
 
@@ -50,3 +50,16 @@ npm run test:browser
 ```
 
 Pengujian browser mencakup login gagal/berhasil, tampilkan password, search, filter, update cash, reset terkonfirmasi, pergantian bulan, footer, logout dan overflow pada 375/768/1440px. Screenshot lokal tersimpan di `output/playwright/` (tidak dipublikasikan). Uji simulasi tidak membuktikan akses deployment Google asli. Tidak ada transaksi Google asli yang dijalankan selama pengembangan V2.
+
+
+## Revisi dashboard, diskon, dan tambah pelanggan
+
+Dashboard memakai kartu ringkasan, satu panel visual, dan daftar yang mengutamakan belum bayar, lalu diskon/sebagian. Donat memakai hijau untuk lunas, amber untuk diskon/sebagian, dan merah untuk belum bayar. Pagination 10/25/50 tetap tersedia.
+
+**Backend wajib diperbarui:** salin `apps-script/Code.gs` terbaru ke proyek Apps Script yang sama, jalankan `setupSibil`, lalu edit deployment → New version → Deploy. Pertahankan Script Properties dan URL `/exec`. Push GitHub hanya memperbarui frontend; tidak menerapkan Apps Script. Backend lama belum menerima `DISCOUNT` atau action `addCustomer`.
+
+Status **Diskon / bayar sebagian** menyimpan teks `DISCOUNT` hanya di sel bulan pelanggan yang dipilih. Tidak ada nominal pembayaran atau penghitungan sisa tagihan. Ringkasan lunas hanya menghitung Cash dan Transfer. Bila Sheet memakai validasi data yang menolak teks lain, pengelola perlu mengizinkan `DISCOUNT` pada kolom bulan terkait.
+
+**Tambah pelanggan** memerlukan sesi admin. Nama wajib diisi, maksimal 150 karakter, tidak boleh formula atau baris baru, dan nama duplikat ditolak tanpa membedakan huruf besar/kecil. Penambahan memakai ScriptLock yang sama dengan pembayaran dan menulis nama ke kolom B pada baris setelah data terakhir (minimal baris 4), menambah kapasitas baris bila perlu. Sel bulan kosong dibaca sebagai belum bayar. Tidak menyalin rumus atau mengubah kolom lain; rumus manual untuk pelanggan baru, bila diperlukan, tetap dikelola di Sheet. Menutup dialog diblokir saat penyimpanan; jika koneksi terputus, muat ulang dan periksa pelanggan sebelum mengulang.
+
+`npm run test:browser` mencakup alur V2 dan revisi baru pada 375/768/1440px, memakai respons Google simulasi. Server lokal tetap `python3 -m http.server 8765 --bind 127.0.0.1 --directory public`. Pengujian backend mencakup diskon, penghitungan lunas, autentikasi tambah pelanggan, validasi nama, duplikat, dan perlindungan sel lama/kolom rumus. Tidak ada data Google asli yang dibaca atau ditulis saat pengujian.
